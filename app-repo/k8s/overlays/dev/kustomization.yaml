@@ -12,7 +12,11 @@ commonLabels:
 images:
   - name: DOCKERHUB_USERNAME/coolad-frontend
     newTag: latest
+  - name: DOCKERHUB_USERNAME/coolad-backend
+    newTag: latest
 
 replicas:
   - name: coolad-frontend
+    count: 2
+  - name: coolad-backend
     count: 2

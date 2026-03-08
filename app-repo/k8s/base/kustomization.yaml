@@ -5,7 +5,9 @@ namespace: coolad-app
 
 resources:
   - deployment.yaml
+  - backend-deployment.yaml
   - service.yaml
+  - secrets.yaml
   - ingress.yaml
 
 commonLabels:
