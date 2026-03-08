@@ -1,5 +1,5 @@
 # ============================================
-# VPC Module
+# VPC Module - 3 AZ Architecture
 # ============================================
 
 resource "aws_vpc" "main" {
@@ -22,7 +22,9 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# Public Subnets
+# ============================================
+# Public Subnets (3 AZs)
+# ============================================
 resource "aws_subnet" "public" {
   count = length(var.public_subnet_cidrs)
 
@@ -32,13 +34,16 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "${var.project_name}-${var.environment}-public-${count.index + 1}"
-    "kubernetes.io/role/elb"                                                  = "1"
-    "kubernetes.io/cluster/${var.project_name}-${var.environment}-cluster"    = "shared"
+    Name                                                                   = "${var.project_name}-${var.environment}-public-${count.index + 1}"
+    "kubernetes.io/role/elb"                                               = "1"
+    "kubernetes.io/cluster/${var.project_name}-${var.environment}-cluster" = "shared"
+    Tier                                                                   = "public"
   }
 }
 
-# Private Subnets
+# ============================================
+# Private Subnets (3 AZs) - App/EKS
+# ============================================
 resource "aws_subnet" "private" {
   count = length(var.private_subnet_cidrs)
 
@@ -47,13 +52,42 @@ resource "aws_subnet" "private" {
   availability_zone = var.availability_zones[count.index]
 
   tags = {
-    Name = "${var.project_name}-${var.environment}-private-${count.index + 1}"
-    "kubernetes.io/role/internal-elb"                                         = "1"
-    "kubernetes.io/cluster/${var.project_name}-${var.environment}-cluster"    = "shared"
+    Name                                                                   = "${var.project_name}-${var.environment}-private-${count.index + 1}"
+    "kubernetes.io/role/internal-elb"                                      = "1"
+    "kubernetes.io/cluster/${var.project_name}-${var.environment}-cluster" = "shared"
+    Tier                                                                   = "private"
   }
 }
 
-# Elastic IP for NAT Gateway
+# ============================================
+# Database Subnets (3 AZs) - RDS
+# ============================================
+resource "aws_subnet" "database" {
+  count = length(var.database_subnet_cidrs)
+
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.database_subnet_cidrs[count.index]
+  availability_zone = var.availability_zones[count.index]
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-database-${count.index + 1}"
+    Tier = "database"
+  }
+}
+
+# RDS Subnet Group
+resource "aws_db_subnet_group" "main" {
+  name       = "${var.project_name}-${var.environment}-db-subnet-group"
+  subnet_ids = aws_subnet.database[*].id
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-db-subnet-group"
+  }
+}
+
+# ============================================
+# NAT Gateways (single for cost - Free Tier)
+# ============================================
 resource "aws_eip" "nat" {
   domain = "vpc"
 
@@ -62,7 +96,6 @@ resource "aws_eip" "nat" {
   }
 }
 
-# NAT Gateway (single for cost optimization)
 resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public[0].id
@@ -73,6 +106,10 @@ resource "aws_nat_gateway" "main" {
 
   depends_on = [aws_internet_gateway.main]
 }
+
+# ============================================
+# Route Tables
+# ============================================
 
 # Public Route Table
 resource "aws_route_table" "public" {
@@ -102,7 +139,18 @@ resource "aws_route_table" "private" {
   }
 }
 
+# Database Route Table (no internet access)
+resource "aws_route_table" "database" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-database-rt"
+  }
+}
+
+# ============================================
 # Route Table Associations
+# ============================================
 resource "aws_route_table_association" "public" {
   count = length(var.public_subnet_cidrs)
 
@@ -115,4 +163,35 @@ resource "aws_route_table_association" "private" {
 
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "database" {
+  count = length(var.database_subnet_cidrs)
+
+  subnet_id      = aws_subnet.database[count.index].id
+  route_table_id = aws_route_table.database.id
+}
+
+# ============================================
+# VPC Flow Logs (optional, for monitoring)
+# ============================================
+resource "aws_flow_log" "main" {
+  vpc_id               = aws_vpc.main.id
+  traffic_type         = "ALL"
+  log_destination_type = "cloud-watch-logs"
+  log_destination      = aws_cloudwatch_log_group.vpc_flow.arn
+  iam_role_arn         = var.flow_log_role_arn
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-vpc-flow-log"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "vpc_flow" {
+  name              = "/aws/vpc/${var.project_name}-${var.environment}-flow-logs"
+  retention_in_days = 7
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-vpc-flow-logs"
+  }
 }
