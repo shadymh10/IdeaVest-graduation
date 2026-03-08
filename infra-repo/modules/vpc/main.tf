@@ -1,5 +1,5 @@
 # ============================================
-# VPC Module - 3 AZ Architecture
+# VPC Module - 2 AZ Architecture
 # ============================================
 
 resource "aws_vpc" "main" {
@@ -23,7 +23,7 @@ resource "aws_internet_gateway" "main" {
 }
 
 # ============================================
-# Public Subnets (3 AZs)
+# Public Subnets (2 AZs)
 # ============================================
 resource "aws_subnet" "public" {
   count = length(var.public_subnet_cidrs)
@@ -42,7 +42,7 @@ resource "aws_subnet" "public" {
 }
 
 # ============================================
-# Private Subnets (3 AZs) - App/EKS
+# Private Subnets (2 AZs) - App/EKS
 # ============================================
 resource "aws_subnet" "private" {
   count = length(var.private_subnet_cidrs)
@@ -60,7 +60,7 @@ resource "aws_subnet" "private" {
 }
 
 # ============================================
-# Database Subnets (3 AZs) - RDS
+# Database Subnets (2 AZs) - RDS
 # ============================================
 resource "aws_subnet" "database" {
   count = length(var.database_subnet_cidrs)
@@ -86,7 +86,7 @@ resource "aws_db_subnet_group" "main" {
 }
 
 # ============================================
-# NAT Gateways (single for cost - Free Tier)
+# NAT Gateway (single for Free Tier cost)
 # ============================================
 resource "aws_eip" "nat" {
   domain = "vpc"
@@ -139,7 +139,7 @@ resource "aws_route_table" "private" {
   }
 }
 
-# Database Route Table (no internet access)
+# Database Route Table (isolated - no internet)
 resource "aws_route_table" "database" {
   vpc_id = aws_vpc.main.id
 
@@ -170,28 +170,4 @@ resource "aws_route_table_association" "database" {
 
   subnet_id      = aws_subnet.database[count.index].id
   route_table_id = aws_route_table.database.id
-}
-
-# ============================================
-# VPC Flow Logs (optional, for monitoring)
-# ============================================
-resource "aws_flow_log" "main" {
-  vpc_id               = aws_vpc.main.id
-  traffic_type         = "ALL"
-  log_destination_type = "cloud-watch-logs"
-  log_destination      = aws_cloudwatch_log_group.vpc_flow.arn
-  iam_role_arn         = var.flow_log_role_arn
-
-  tags = {
-    Name = "${var.project_name}-${var.environment}-vpc-flow-log"
-  }
-}
-
-resource "aws_cloudwatch_log_group" "vpc_flow" {
-  name              = "/aws/vpc/${var.project_name}-${var.environment}-flow-logs"
-  retention_in_days = 7
-
-  tags = {
-    Name = "${var.project_name}-${var.environment}-vpc-flow-logs"
-  }
 }
