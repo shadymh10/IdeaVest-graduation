@@ -18,18 +18,8 @@ module "vpc" {
 }
 
 # ============================================
-# Security
+# IAM
 # ============================================
-module "security_groups" {
-  source = "./modules/security-groups"
-
-  project_name     = var.project_name
-  environment      = var.environment
-  vpc_id           = module.vpc.vpc_id
-  vpc_cidr         = module.vpc.vpc_cidr
-  allowed_ssh_cidrs = var.allowed_ssh_cidrs
-}
-
 module "iam" {
   source = "./modules/iam"
 
@@ -38,7 +28,20 @@ module "iam" {
 }
 
 # ============================================
-# Load Balancer
+# Security Groups
+# ============================================
+module "security_groups" {
+  source = "./modules/security-groups"
+
+  project_name      = var.project_name
+  environment       = var.environment
+  vpc_id            = module.vpc.vpc_id
+  vpc_cidr          = module.vpc.vpc_cidr
+  allowed_ssh_cidrs = var.allowed_ssh_cidrs
+}
+
+# ============================================
+# ALB
 # ============================================
 module "alb" {
   source = "./modules/alb"
@@ -51,27 +54,28 @@ module "alb" {
 }
 
 # ============================================
-# Compute - EC2 (Public) + Jenkins + ASG
+# EC2 + Jenkins + ASG
 # ============================================
 module "ec2" {
   source = "./modules/ec2"
 
-  project_name          = var.project_name
-  environment           = var.environment
-  ami_id                = var.ami_id
-  jenkins_instance_type = var.jenkins_instance_type
-  app_instance_type     = var.app_instance_type
-  ssh_public_key        = var.ssh_public_key
-  public_subnet_ids     = module.vpc.public_subnet_ids
-  ec2_sg_id             = module.security_groups.ec2_sg_id
-  target_group_arn      = module.alb.target_group_arn
-  asg_desired           = var.asg_desired
-  asg_min               = var.asg_min
-  asg_max               = var.asg_max
+  project_name                  = var.project_name
+  environment                   = var.environment
+  ami_id                        = var.ami_id
+  jenkins_instance_type         = var.jenkins_instance_type
+  app_instance_type             = var.app_instance_type
+  ssh_public_key                = var.ssh_public_key
+  public_subnet_ids             = module.vpc.public_subnet_ids
+  ec2_sg_id                     = module.security_groups.ec2_sg_id
+  jenkins_instance_profile_name = module.iam.jenkins_instance_profile_name
+  target_group_arn              = module.alb.target_group_arn
+  asg_desired                   = var.asg_desired
+  asg_min                       = var.asg_min
+  asg_max                       = var.asg_max
 }
 
 # ============================================
-# Database - RDS (Private)
+# RDS (Private Subnet)
 # ============================================
 module "rds" {
   source = "./modules/rds"
@@ -85,7 +89,7 @@ module "rds" {
 }
 
 # ============================================
-# Kubernetes - EKS
+# EKS
 # ============================================
 module "eks" {
   source = "./modules/eks"
