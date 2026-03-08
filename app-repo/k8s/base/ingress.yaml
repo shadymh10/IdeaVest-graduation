@@ -1,16 +1,35 @@
+# ============================================
+# Ingress - Routes traffic to Frontend & Backend
+# ============================================
+# /api/*  → coolad-backend-svc:3000
+# /*      → coolad-frontend-svc:80
+# ============================================
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: coolad-ingress
   namespace: coolad-app
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
 spec:
   ingressClassName: nginx
   rules:
     - http:
         paths:
+          # Backend API routes
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: coolad-backend-svc
+                port:
+                  number: 3000
+          # Frontend (catch-all)
           - path: /
             pathType: Prefix
             backend:

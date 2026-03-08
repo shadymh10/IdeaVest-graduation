@@ -1,3 +1,27 @@
+# ============================================
+# Backend Service (ClusterIP - internal only)
+# Frontend talks to backend via this service
+# ============================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: coolad-backend-svc
+  namespace: coolad-app
+  labels:
+    app: coolad-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: coolad-backend
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+---
+# ============================================
+# Frontend Service (ClusterIP - behind Ingress)
+# ============================================
 apiVersion: v1
 kind: Service
 metadata:
@@ -6,7 +30,7 @@ metadata:
   labels:
     app: coolad-frontend
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: coolad-frontend
   ports:
