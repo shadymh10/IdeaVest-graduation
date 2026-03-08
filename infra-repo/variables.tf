@@ -1,71 +1,148 @@
 variable "aws_region" {
-  description = "AWS region for all resources"
+  description = "AWS region"
   type        = string
   default     = "us-east-1"
 }
 
 variable "project_name" {
-  description = "Project name used for resource naming"
+  description = "Project name for resource naming"
   type        = string
   default     = "coolad"
 }
 
 variable "environment" {
-  description = "Environment name (dev, staging, prod)"
+  description = "Environment (dev, staging, prod)"
   type        = string
   default     = "dev"
 }
 
+# ============================================
+# Networking
+# ============================================
 variable "vpc_cidr" {
-  description = "CIDR block for the VPC"
+  description = "VPC CIDR block"
   type        = string
   default     = "10.0.0.0/16"
 }
 
 variable "public_subnet_cidrs" {
-  description = "CIDR blocks for public subnets"
+  description = "Public subnet CIDRs (2 AZs)"
   type        = list(string)
   default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
 
 variable "private_subnet_cidrs" {
-  description = "CIDR blocks for private subnets"
+  description = "Private subnet CIDRs (2 AZs)"
   type        = list(string)
   default     = ["10.0.3.0/24", "10.0.4.0/24"]
 }
 
+variable "database_subnet_cidrs" {
+  description = "Database subnet CIDRs (2 AZs)"
+  type        = list(string)
+  default     = ["10.0.5.0/24", "10.0.6.0/24"]
+}
+
 variable "availability_zones" {
-  description = "Availability zones"
+  description = "Availability zones (2 AZs)"
   type        = list(string)
   default     = ["us-east-1a", "us-east-1b"]
 }
 
+variable "allowed_ssh_cidrs" {
+  description = "CIDR blocks allowed to SSH"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+# ============================================
+# EC2 / Compute
+# ============================================
+variable "ami_id" {
+  description = "AMI ID for EC2 (Amazon Linux 2)"
+  type        = string
+  default     = "ami-0c02fb55956c7d316" # Amazon Linux 2 us-east-1
+}
+
+variable "jenkins_instance_type" {
+  description = "Jenkins EC2 instance type"
+  type        = string
+  default     = "t2.micro"
+}
+
+variable "app_instance_type" {
+  description = "App EC2 instance type"
+  type        = string
+  default     = "t2.micro"
+}
+
+variable "ssh_public_key" {
+  description = "SSH public key for EC2 access"
+  type        = string
+}
+
+variable "asg_desired" {
+  description = "ASG desired capacity"
+  type        = number
+  default     = 1
+}
+
+variable "asg_min" {
+  description = "ASG minimum size"
+  type        = number
+  default     = 1
+}
+
+variable "asg_max" {
+  description = "ASG maximum size"
+  type        = number
+  default     = 2
+}
+
+# ============================================
+# Database
+# ============================================
+variable "db_username" {
+  description = "RDS master username"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_password" {
+  description = "RDS master password"
+  type        = string
+  sensitive   = true
+}
+
+# ============================================
+# EKS
+# ============================================
 variable "eks_cluster_version" {
-  description = "Kubernetes version for EKS"
+  description = "EKS Kubernetes version"
   type        = string
   default     = "1.28"
 }
 
 variable "node_instance_type" {
-  description = "EC2 instance type for EKS worker nodes"
+  description = "EKS node instance type"
   type        = string
   default     = "t3.small"
 }
 
 variable "node_desired_count" {
-  description = "Desired number of worker nodes"
+  description = "Desired EKS nodes"
   type        = number
   default     = 2
 }
 
 variable "node_min_count" {
-  description = "Minimum number of worker nodes"
+  description = "Min EKS nodes"
   type        = number
   default     = 1
 }
 
 variable "node_max_count" {
-  description = "Maximum number of worker nodes"
+  description = "Max EKS nodes"
   type        = number
   default     = 2
 }
