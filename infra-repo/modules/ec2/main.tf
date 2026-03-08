@@ -1,5 +1,5 @@
 # ============================================
-# EC2 Module - Jenkins on Public Subnet
+# EC2 Module - Jenkins + App ASG
 # ============================================
 
 # Key Pair
@@ -21,6 +21,7 @@ resource "aws_instance" "jenkins" {
   key_name               = aws_key_pair.main.key_name
   subnet_id              = var.public_subnet_ids[0]
   vpc_security_group_ids = [var.ec2_sg_id]
+  iam_instance_profile   = var.jenkins_instance_profile_name
 
   associate_public_ip_address = true
 
@@ -34,20 +35,15 @@ resource "aws_instance" "jenkins" {
     #!/bin/bash
     set -euo pipefail
 
-    # Update system
     yum update -y
-
-    # Install Docker
     amazon-linux-extras install docker -y
     systemctl start docker
     systemctl enable docker
     usermod -aG docker ec2-user
 
-    # Install Docker Compose
     curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
 
-    # Run Jenkins container
     docker run -d \
       --name jenkins \
       --restart=always \
@@ -57,19 +53,16 @@ resource "aws_instance" "jenkins" {
       -v /var/run/docker.sock:/var/run/docker.sock \
       jenkins/jenkins:lts
 
-    # Install kubectl
     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
-    # Install AWS CLI v2
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
     unzip awscliv2.zip
     ./aws/install
 
-    # Install Helm
     curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-    # Setup Jenkins cache cleanup cron (runs daily at 3 AM)
+    # Jenkins cache cleanup cron (daily 3 AM)
     cat > /opt/jenkins-cleanup.sh << 'CLEANUP'
     #!/bin/bash
     echo "[$(date)] Starting Jenkins cache cleanup..."
@@ -94,7 +87,7 @@ resource "aws_instance" "jenkins" {
 }
 
 # ============================================
-# App EC2 Instances (Public Subnets - via ASG)
+# App EC2 - Launch Template + ASG
 # ============================================
 resource "aws_launch_template" "app" {
   name_prefix   = "${var.project_name}-${var.environment}-app-"
@@ -136,9 +129,6 @@ resource "aws_launch_template" "app" {
   }
 }
 
-# ============================================
-# Auto Scaling Group
-# ============================================
 resource "aws_autoscaling_group" "app" {
   name                = "${var.project_name}-${var.environment}-app-asg"
   desired_capacity    = var.asg_desired
@@ -162,7 +152,6 @@ resource "aws_autoscaling_group" "app" {
   }
 }
 
-# Auto Scaling Policies
 resource "aws_autoscaling_policy" "scale_up" {
   name                   = "${var.project_name}-${var.environment}-scale-up"
   autoscaling_group_name = aws_autoscaling_group.app.name
@@ -179,7 +168,6 @@ resource "aws_autoscaling_policy" "scale_down" {
   cooldown               = 300
 }
 
-# CloudWatch Alarms for Auto Scaling
 resource "aws_cloudwatch_metric_alarm" "high_cpu" {
   alarm_name          = "${var.project_name}-${var.environment}-high-cpu"
   comparison_operator = "GreaterThanThreshold"

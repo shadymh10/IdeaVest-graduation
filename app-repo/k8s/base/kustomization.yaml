@@ -9,6 +9,8 @@ resources:
   - service.yaml
   - secrets.yaml
   - ingress.yaml
+  - network-policy.yaml
+  - hpa.yaml
 
 commonLabels:
   project: coolad
