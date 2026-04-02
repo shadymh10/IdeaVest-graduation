@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "project_name" {
   description = "Project name for resource naming"
   type        = string
-  default     = "coolad"
+  default     = "ideavest-production"
 }
 
 variable "environment" {
@@ -61,19 +61,19 @@ variable "allowed_ssh_cidrs" {
 variable "ami_id" {
   description = "AMI ID for EC2 (Amazon Linux 2)"
   type        = string
-  default     = "ami-0c02fb55956c7d316" # Amazon Linux 2 us-east-1
+  default     = "ami-02dfbd4ff395f2a1b" # Amazon Linux 2 us-east-1
 }
 
 variable "jenkins_instance_type" {
   description = "Jenkins EC2 instance type"
   type        = string
-  default     = "t2.micro"
+  default     = "t3.micro"
 }
 
 variable "app_instance_type" {
   description = "App EC2 instance type"
   type        = string
-  default     = "t2.micro"
+  default     = "t3.micro"
 }
 
 variable "ssh_public_key" {
@@ -126,7 +126,7 @@ variable "eks_cluster_version" {
 variable "node_instance_type" {
   description = "EKS node instance type"
   type        = string
-  default     = "t3.small"
+  default     = "t3.medium"
 }
 
 variable "node_desired_count" {

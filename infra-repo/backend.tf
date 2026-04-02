@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket         = "coolad-terraform-state"
+    bucket         = "s3-ideavest "
     key            = "eks/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "coolad-terraform-lock"
