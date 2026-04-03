@@ -4,19 +4,19 @@ kind: Kustomization
 resources:
   - ../../base
 
-namespace: coolad-app
+namespace: ideavest-app
 
 commonLabels:
   environment: dev
 
 images:
-  - name: DOCKERHUB_USERNAME/coolad-frontend
-    newTag: latest
-  - name: DOCKERHUB_USERNAME/coolad-backend
-    newTag: latest
+  - name: shadymo/ideavest-frontend
+    newTag: IMAGE_TAG
+  - name: shadymo/ideavest-backend
+    newTag: IMAGE_TAG
 
 replicas:
-  - name: coolad-frontend
+  - name: ideavest-frontend
     count: 2
-  - name: coolad-backend
+  - name: ideavest-backend
     count: 2
