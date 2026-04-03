@@ -7,15 +7,15 @@ variable "environment" {
 }
 
 variable "db_engine_version" {
-  description = "PostgreSQL engine version"
+  description = "SQL Server engine version"
   type        = string
-  default     = "15.4"
+  default     = "15.00.4223.1.v1" # مثال: SQL Server 2019 Express
 }
 
 variable "db_instance_class" {
   description = "RDS instance class"
   type        = string
-  default     = "db.t3.micro"
+  default     = "db.t3.micro" # Express edition supported
 }
 
 variable "db_allocated_storage" {
@@ -25,9 +25,9 @@ variable "db_allocated_storage" {
 }
 
 variable "db_name" {
-  description = "Database name"
+  description = "Database name (SQL Server naming rules)"
   type        = string
-  default     = "coolad"
+  default     = "ideavest" # عدّل الاسم لو حابب
 }
 
 variable "db_username" {
