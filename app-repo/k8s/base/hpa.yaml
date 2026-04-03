@@ -4,13 +4,13 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: coolad-frontend-hpa
-  namespace: coolad-app
+  name: ideavest-frontend-hpa
+  namespace: ideavest-app
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: coolad-frontend
+    name: ideavest-frontend
   minReplicas: 1
   maxReplicas: 4
   metrics:
@@ -30,13 +30,13 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: coolad-backend-hpa
-  namespace: coolad-app
+  name: ideavest-backend-hpa
+  namespace: ideavest-app
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: coolad-backend
+    name: ideavest-backend
   minReplicas: 1
   maxReplicas: 4
   metrics:
