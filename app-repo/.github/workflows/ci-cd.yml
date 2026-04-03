@@ -80,8 +80,8 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/coolad-${{ matrix.service }}:${{ env.IMAGE_TAG }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/coolad-${{ matrix.service }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/ideavest-${{ matrix.service }}:${{ env.IMAGE_TAG }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/ideavest-${{ matrix.service }}:latest
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
@@ -101,10 +101,10 @@ jobs:
       - name: Update image tags in Kustomization
         run: |
           cd k8s/overlays/dev
-          sed -i "s|name: DOCKERHUB_USERNAME/coolad-frontend|name: ${{ secrets.DOCKERHUB_USERNAME }}/coolad-frontend|" kustomization.yaml
-          sed -i "s|name: DOCKERHUB_USERNAME/coolad-backend|name: ${{ secrets.DOCKERHUB_USERNAME }}/coolad-backend|" kustomization.yaml
-          sed -i "/coolad-frontend/{n;s|newTag:.*|newTag: \"${{ env.IMAGE_TAG }}\"|}" kustomization.yaml
-          sed -i "/coolad-backend/{n;s|newTag:.*|newTag: \"${{ env.IMAGE_TAG }}\"|}" kustomization.yaml
+          sed -i "s|name: DOCKERHUB_USERNAME/ideavest-frontend|name: ${{ secrets.DOCKERHUB_USERNAME }}/ideavest-frontend|" kustomization.yaml
+          sed -i "s|name: DOCKERHUB_USERNAME/ideavest-backend|name: ${{ secrets.DOCKERHUB_USERNAME }}/ideavest-backend|" kustomization.yaml
+          sed -i "/ideavest-frontend/{n;s|newTag:.*|newTag: \"${{ env.IMAGE_TAG }}\"|}" kustomization.yaml
+          sed -i "/ideavest-backend/{n;s|newTag:.*|newTag: \"${{ env.IMAGE_TAG }}\"|}" kustomization.yaml
 
       - name: Commit and Push
         run: |
