@@ -10,8 +10,8 @@ on:
     branches: [main]
 
 env:
-  DOCKERHUB_FRONTEND: ${{ secrets.DOCKERHUB_USERNAME }}/coolad-frontend
-  DOCKERHUB_BACKEND: ${{ secrets.DOCKERHUB_USERNAME }}/coolad-backend
+  DOCKERHUB_FRONTEND: ${{ secrets.DOCKERHUB_USERNAME }}/ideavest-frontend
+  DOCKERHUB_BACKEND: ${{ secrets.DOCKERHUB_USERNAME }}/ideavest-backend
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
