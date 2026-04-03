@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: coolad-app
+  name: ideavest-app
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -9,14 +9,14 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/YOUR_USERNAME/coolad-cd.git
+    repoURL: https://github.com/shadymh10/IdeaVest-graduation.git
     targetRevision: main
     path: k8s/overlays/dev
     kustomize: {}
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: coolad-app
+    namespace: ideavest-app
 
   syncPolicy:
     automated:
