@@ -1,151 +1,107 @@
-name: "Terraform CI - Infrastructure"
+name: Terraform Pipeline v5
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-env:
-  TF_VERSION: "1.6.0"
-  AWS_REGION: "us-east-1"
-
-permissions:
-  contents: read
-  pull-requests: write
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Apply Terraform plan?"
+        required: false
+        default: "no"
+      destroy:
+        description: "Destroy infrastructure?"
+        required: false
+        default: "no"
 
 jobs:
-  # ============================================
-  # Stage 1: Validate & Lint
-  # ============================================
-  validate:
-    name: "🔍 Validate Terraform"
+  terraform:
     runs-on: ubuntu-latest
+
+    env:
+      TF_LOG: INFO
+      TF_WORKSPACE: default
+      AWS_REGION: us-east-1
+
     steps:
-      - name: Checkout
+
+      # 1️⃣ Checkout repository
+      - name: 🔹 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive
-
-      - name: Terraform Init
-        run: terraform init -backend=false
-
-      - name: Terraform Validate
-        run: terraform validate
-
-  # ============================================
-  # Stage 2: Security Scan
-  # ============================================
-  security:
-    name: "🛡️ Security Scan"
-    runs-on: ubuntu-latest
-    needs: validate
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.3
-        with:
-          soft_fail: true
-
-  # ============================================
-  # Stage 3: Plan
-  # ============================================
-  plan:
-    name: "📋 Terraform Plan"
-    runs-on: ubuntu-latest
-    needs: [validate, security]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      # 2️⃣ Configure AWS credentials
+      - name: 🔹 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: us-east-1
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      # 3️⃣ Clean Terraform cache and old files
+      - name: 🗑 Clean Terraform cache
+        run: |
+          rm -rf .terraform
+          rm -f tfplan tf_apply.log tf_plan.log tf_init.log tf_validate.log tf_destroy.log
+
+      - name: 🔧 Install Terraform
+        uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: "1.6.6"
 
-      - name: Terraform Init
-        run: terraform init
+      # 5️⃣ Cache Terraform providers
+      - name: 🔹 Cache Terraform providers
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            .terraform
+          key: ${{ runner.os }}-terraform-${{ hashFiles('**/*.tf*') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-
 
-      - name: Terraform Plan
-        id: plan
-        run: terraform plan -no-color -out=tfplan
-        continue-on-error: true
+      # 6️⃣ Terraform Init
+      - name: 🚀 Terraform Init
+        run: terraform init -input=false -reconfigure -upgrade | tee tf_init.log
 
-      - name: Upload Plan Artifact
+      # 7️⃣ Terraform Validate
+      - name: 🔍 Terraform Validate
+        run: terraform validate | tee tf_validate.log
+
+      - name: 📝 Terraform Format
+        run: terraform fmt -recursive | tee tf_fmt.log
+
+      # 9️⃣ Terraform Plan
+      - name: 📄 Terraform Plan
+        run: terraform plan -out=tfplan | tee tf_plan.log
+
+      # 10️⃣ Upload logs
+      - name: 📤 Upload Terraform logs
         uses: actions/upload-artifact@v4
         with:
-          name: tfplan
-          path: tfplan
-          retention-days: 5
+          name: terraform-logs
+          path: |
+            tf_init.log
+            tf_validate.log
+            tf_plan.log
 
-      - name: Comment Plan on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+      # 11️⃣ Optional Apply
+      - name: 🚀 Terraform Apply
+        if: ${{ github.event.inputs.apply == 'yes' }}
+        run: terraform apply -auto-approve tfplan | tee tf_apply.log
+
+      - name: 📤 Upload Apply Log
+        if: ${{ github.event.inputs.apply == 'yes' }}
+        uses: actions/upload-artifact@v4
         with:
-          script: |
-            const output = `#### Terraform Plan 📋
-            \`\`\`
-            ${{ steps.plan.outputs.stdout }}
-            \`\`\`
-            *Pushed by: @${{ github.actor }}*`;
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
+          name: terraform-apply-log
+          path: tf_apply.log
 
-      - name: Plan Status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
+      # 12️⃣ Optional Destroy
+      - name: 🗑 Terraform Destroy
+        if: ${{ github.event.inputs.destroy == 'yes' }}
+        run: terraform destroy -auto-approve | tee tf_destroy.log
 
-  # ============================================
-  # Stage 4: Apply (main branch only, after plan success)
-  # ============================================
-  apply:
-    name: "🚀 Terraform Apply"
-    runs-on: ubuntu-latest
-    needs: plan
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: production
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: 📤 Upload Destroy Log
+        if: ${{ github.event.inputs.destroy == 'yes' }}
+        uses: actions/upload-artifact@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Download Plan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+          name: terraform-destroy-log
+          path: tf_destroy.log
