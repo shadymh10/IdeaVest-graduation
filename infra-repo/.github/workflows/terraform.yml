@@ -61,7 +61,7 @@ jobs:
       - name: 🚀 Terraform Init
         run: terraform init -input=false -reconfigure -upgrade | tee tf_init.log
 
-      # 7️⃣ Terraform Validate
+      # 7️⃣Terraform Validate
       - name: 🔍 Terraform Validate
         run: terraform validate | tee tf_validate.log
 
